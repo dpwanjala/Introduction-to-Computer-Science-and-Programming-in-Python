@@ -13,7 +13,7 @@ import string
 
 VOWELS = 'aeiou'
 CONSONANTS = 'bcdfghjklmnpqrstvwxyz'
-HAND_SIZE = 7
+HAND_SIZE = 5
 
 SCRABBLE_LETTER_VALUES = {
     'a': 1, 'b': 3, 'c': 3, 'd': 2, 'e': 1, 'f': 4, 'g': 2, 'h': 4, 'i': 1, 'j': 8, 'k': 5, 'l': 1, 'm': 3, 'n': 1,
@@ -176,7 +176,7 @@ def deal_hand(n):
     n: int >= 0
     returns: dictionary (string -> int)
     """
-    # Modify the deal_hand function to support always giving one wildcard in each hand. The wildward replaces
+    # Modify the deal_hand function to support always giving one wildcard in each hand. The wildcard replaces
     # one of the vowels.
     hand = {"*": 1}
 
@@ -184,11 +184,12 @@ def deal_hand(n):
 
     for i in range(num_vowels):
         x = random.choice(VOWELS)
-        # we are adding the vowel to the dictionary if it does not exist or getting it if it exists and adding 1 to its value
-        # indexing with x here accomplishes 2 things, getting us the value or inserting the key into the dictionary with a value
+        # we are adding the vowel to the dictionary if it does not exist or getting it if it exists and adding 1 to
+        # its value
         hand[x] = hand.get(x, 0) + 1
 
-    for i in range(num_vowels, n):
+    # modify this so for the number of consonants because we subtracted 1 to include the * in every hand
+    for i in range(num_vowels + 1, n):
         x = random.choice(CONSONANTS)
         hand[x] = hand.get(x, 0) + 1
 
@@ -281,6 +282,11 @@ def is_valid_word(word, hand, word_list):
 
     # modify to check for words with * in it by replacing the * with vowels
 
+    # we are going to populate an items_matched list if word exists in word_list or if at least one word formed
+    # by replacing * in word exists in word_list
+
+    items_matched = []
+
     # to check it word with an * is valid, we first construct a list of words where the * has been replaced
     # by a vowel since * can only replace vowels.
 
@@ -296,7 +302,6 @@ def is_valid_word(word, hand, word_list):
     else:
         items_matched = [item for item in word_list if item == word]
 
-
     # if the word is not in the list the item_match list will be empty and we can return False, otherwise True.
     return True if len(items_matched) > 0 else False
 
@@ -311,8 +316,15 @@ def calculate_handlen(hand):
     hand: dictionary (string-> int)
     returns: integer
     """
+    # let us initialize a length to 0 and add to this the values for each letter available in the hand
+    # remember the values correspond to the number of times the letter occurs in the hand
+    handlen = 0
 
-    pass  # TO DO... Remove this line when you implement this function
+    # just add the values
+    for key in hand.keys():
+        handlen += hand[key]
+
+    return handlen
 
 
 def play_hand(hand, word_list):
@@ -345,35 +357,59 @@ def play_hand(hand, word_list):
       
     """
 
-    # BEGIN PSEUDOCODE <-- Remove this comment when you implement this function
-    # Keep track of the total score
+    # initialize an int at 0 total_score to keep track of the score for each word the user plays
+    total_score = 0
 
-    # As long as there are still letters left in the hand:
+    # make a copy of hand so we do not mutate our hand
+    new_hand = hand.copy()
+    # we will use the length of the keys in the dictionary to keep track of how many letters the players
+    # still has available. This works since we are removing the letters from the dictionary every time the user uses up
+    # that letter in their word and its frequency reaches 0.
+    num_available_letters = len(new_hand.keys())
 
-    # Display the hand
+    while num_available_letters > 0:
+        # calculate the hand length
+        hand_len = calculate_handlen(new_hand)
 
-    # Ask user for input
+        # Display the hand
+        print("Current Hand: ", end="")
+        display_hand(new_hand)
 
-    # If the input is two exclamation points:
+        # Ask user for input
+        user_input = input("Enter word, or '!!' to indicate that you are finished: ")
 
-    # End the game (break out of the loop)
+        if user_input == "!!":
+            # If the input is two exclamation points:
+            # End the game (break out of the loop)
+            print("Total score for this hand: ", total_score)
+            print("-----------------------------------------")
+            break
+        elif is_valid_word(user_input, hand, word_list):
+            # Otherwise (the input is not two exclamation points) and it is valid
+            # we find the points the user earn for that word they have created
+            points_earned = get_word_score(user_input, hand_len)
+            # and then updated total score
+            total_score += points_earned
+            print("'", user_input, "'", " earned ", points_earned, " points. Total: ", total_score, " points")
+            # finally we update the user's hand to display only the letters they still have available to use
+            new_hand = update_hand(new_hand, user_input)
+            # keep track of number of letters left
+            num_available_letters = len(new_hand.keys())
+        else:
+            # the user input is invalid
+            # update the hand
+            new_hand = update_hand(new_hand, user_input)
+            # update the num_available_letters
+            num_available_letters = len(new_hand.keys())
+            if num_available_letters > 0:
+                # input is invalid an user still has available letters left
+                print("That is not a valid word. Please choose another word.")
+            else:
+                # input is invalid and user does not have any available letters left
+                print("That is not a valid word.")
+                print("Ran out of letters. Total score for this hand: ", total_score, " points")
 
-    # Otherwise (the input is not two exclamation points):
-
-    # If the word is valid:
-
-    # Tell the user how many points the word earned,
-    # and the updated total score
-
-    # Otherwise (the word is not valid):
-    # Reject invalid word (print a message)
-
-    # update the user's hand by removing the letters of their inputted word
-
-    # Game is over (user entered '!!' or ran out of letters),
-    # so tell user the total score
-
-    # Return the total score as result of function
+    return total_score
 
 
 #
@@ -408,7 +444,44 @@ def substitute_hand(hand, letter):
     returns: dictionary (string -> int)
     """
 
-    pass  # TO DO... Remove this line when you implement this function
+    # create new_hand so we do not mutate hand
+    new_hand = hand.copy()
+
+    # let us create an list of letters that we can substitute with by first creating a list of those we can
+    # not substitute with
+    # unpack the keys of the new_hand dictionary into a list of the keys and append letter as we also can
+    # not substitute with that
+
+    non_viable_letters = [*new_hand, letter]
+
+    # letters from vowels and consonants that we can substitute with letter
+    viable_letters = [letter for letter in VOWELS + CONSONANTS if letter not in non_viable_letters]
+
+    # user provide letter not in the hand, word should be the same
+
+    if letter not in new_hand or new_hand[letter] == 0:
+        # user has provided a letter not in the hand
+        # hand should be the same
+        return new_hand
+    else:
+        # letter is in the dictionary
+        # replace all copies of the letter with a new letter chosen from the VOWELS and CONSONANTS at random
+        # and different from chosen letter
+        x = random.choice(viable_letters)
+        new_hand[x] = new_hand[letter]
+        del new_hand[letter]
+
+    return new_hand
+
+
+def is_substitute():
+    """
+    prints the player a prompt to decide whether they want to substitute or not and return a bool value depending
+    on their response.
+    """
+    # include try blocks here to catch user input excepts
+    response = str(input("Would you like to substitute a letter? yes/no ").lower())
+    return True if response == "yes" or response == "y" else False
 
 
 def play_game(word_list):
@@ -442,7 +515,142 @@ def play_game(word_list):
     word_list: list of lowercase strings
     """
 
-    print("play_game not implemented.")  # TO DO... Remove this line when you implement this function
+    # allow user to determine and int total_num_hands they want to play
+    total_num_hands = int(input("Enter total number of hands: "))
+
+    # initialize an empty list of hand_scores to keep track of individual current_hand_score
+    hand_scores = []
+
+    # initialize a int substitute_options to 0 to keep track of how many times player has substituted a letter in the
+    # game
+    substitute_options = 1
+
+    # initialize an int replay_option to 0 to keep track of how many times player has replayed a hand in the game
+    replay_options = 1
+
+    # initialize an empty dict of hand to keep track of which hand to play
+    hand = {}
+
+    # initialize an int num_hands to total_num_hands the user provided to keep track of how many hands the user has
+    # played
+    num_hands = total_num_hands
+
+    while num_hands > 0:
+        # while players still has num_hands to play, keep the game going
+
+        if num_hands == total_num_hands:
+            # check if user is playing game for the very first time, if so,
+            # deal a new hand
+            hand = deal_hand(HAND_SIZE)
+            # let player know the hand they have been dealt
+            print("Current hand: ", end="")
+            display_hand(hand)
+            # give the user the option to substitute a letter in the dealt hand
+            if is_substitute():
+                # player wants to substitute a letter
+                # prompt player to provide the letter they want to substitute
+                substitute_letter_val = str(input("Which letter would you like to replace? ").lower())
+                # substitute letter and update hand
+                hand = substitute_hand(hand, substitute_letter_val)
+                # decrease substitute_options by 1
+                substitute_options -= 1
+            else:
+                # player doesn't want to substitute a letter, pass
+                pass
+            # play the hand then and keep track of current_hand_score return value
+            current_hand_score = play_hand(hand, word_list)
+            # append current_hand_score to hand_scores
+            hand_scores.append(current_hand_score)
+            # reduce the num_hands by 1
+            num_hands -= 1
+        elif replay_options >= 1 and substitute_options >= 1:
+            # user can replay and they can also substitute,
+            # ask if they want to replay a hand
+            replay_response = str(input("Would you like to replay the hand? yes/no "))
+            if replay_response == "yes" or replay_response == "y":
+                # if replay_response is yes, leave hand unchanged,
+                # decrease replay_options by 1
+                replay_options -= 1
+            else:
+                # deal a new hand
+                hand = deal_hand(HAND_SIZE)
+
+            # give the user the option to substitute a letter in the dealt hand
+            if is_substitute():
+                # player wants to substitute a letter
+                # prompt player to provide the letter they want to substitute
+                substitute_letter_val = str(input("Which letter would you like to replace? ").lower())
+                # substitute letter and update hand
+                hand = substitute_hand(hand, substitute_letter_val)
+                # decrease substitute_options by 1
+                substitute_options -= 1
+            else:
+                # player doesn't want to substitute a letter, pass
+                pass
+
+            # play the hand and keep track of the current_hand_score for this hand.
+            current_hand_score = play_hand(hand, word_list)
+            # append current_hand_score to hand_scores
+            hand_scores.append(current_hand_score)
+            # reduce the num_hands by 1
+            num_hands -= 1
+        elif replay_options >= 1 and substitute_options < 1:
+            # user can replay but not substitute,
+            # ask if they want to replay a hand
+            replay_response = str(input("Would you like to replay the hand? yes/no "))
+
+            if replay_response == "yes" or replay_response == "y":
+                # if replay_response is yes, leave hand unchanged,
+                # decrease replay_options by 1
+                replay_options -= 1
+            else:
+                # deal a new hand
+                hand = deal_hand(HAND_SIZE)
+
+            # play the hand and keep track of the current_hand_score for this hand.
+            current_hand_score = play_hand(hand, word_list)
+            # append current_hand_score to hand_scores
+            hand_scores.append(current_hand_score)
+            # reduce the num_hands by 1
+            num_hands -= 1
+        elif replay_options < 1 and substitute_options >= 1:
+            # user can not replay but they can substitute
+            # deal a new hand
+            hand = deal_hand(HAND_SIZE)
+
+            # give the user the option to substitute a letter in the dealt hand
+            if is_substitute():
+                # player wants to substitute a letter
+                # prompt player to provide the letter they want to substitute
+                substitute_letter_val = str(input("Which letter would you like to replace? ").lower())
+                # substitute letter and update hand
+                hand = substitute_hand(hand, substitute_letter_val)
+                # decrease substitute_options by 1
+                substitute_options -= 1
+            else:
+                # player doesn't want to substitute a letter, pass
+                pass
+            # play the hand and keep track of the current_hand_score for this hand.
+            current_hand_score = play_hand(hand, word_list)
+            # append current_hand_score to hand_scores
+            hand_scores.append(current_hand_score)
+            # reduce the num_hands by 1
+            num_hands -= 1
+        else:
+            # player can not substitute and can not replay but they still have num_hands left to play
+            # deal a new hand
+            hand = deal_hand(HAND_SIZE)
+            # play the hand and keep track of the current_hand_score for this hand.
+            current_hand_score = play_hand(hand, word_list)
+            # append current_hand_score to hand_scores
+            hand_scores.append(current_hand_score)
+            # reduce the num_hands by 1
+            num_hands -= 1
+
+    # Provide aggregate feedback to the player on their performance at the end of the game.
+    print("Total score over all hands: ", sum(hand_scores))
+    print("Max score over all hands:", max(hand_scores))
+    print("Min score over all hands:", min(hand_scores))
 
 
 #
