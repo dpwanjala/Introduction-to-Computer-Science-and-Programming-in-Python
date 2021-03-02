@@ -1,0 +1,11 @@
+// after trigger named t2 - assuming debate debate window is between 17:00:10 and 20:00:10 hours
+t2,AFTER,19 Oct 2020 17:00:10
+
+// before trigger named t3
+t3,AFTER,19 Oct 2020 20:00:10
+
+// composite trigger named t4
+t4,AND,t2,t3
+
+// the trigger list contains t1 and t4
+ADD,t4
