@@ -108,10 +108,8 @@ model.add(keras.layers.Dense(10, activation="softmax"))
 # weights
 # biases
 
-# after we have created the model, we now call its compile() to specify a loss function and the
-# optimizer to use.
-
-# a) first we use the "sparse_categorical_crossentropy" loss because we have sparse labels and the classes are
+# after we have created the model, we now call its compile() to specify a loss function and the optimizer to use.
+# a) first we use the "sparse_categorical_crossentropy" loss function because we have sparse labels and the classes are
 # exclusive as opposed to to other such as "categorical_crossentropy", or "binary_crossentropy" which would have been
 # useful if we were doing binary classification
 # b) we are using a simple stochastic gradient descent algorithm to train the model. this will enable keras to perform
